@@ -1,8 +1,13 @@
 package term3.fe.rupp.ckccmap;
 
+import android.location.Location;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.util.Log;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -10,20 +15,33 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private GoogleMap mMap;
+    private GoogleApiClient mGoogleApiClient = null;
+    private LatLng lastLocation = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        Log.d("Maps:", "Activity OnCreated");
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-    }
 
+        if (mGoogleApiClient == null) {
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .addApi(LocationServices.API)
+                    .build();
+        }
+        mGoogleApiClient.connect();
+    }
 
     /**
      * Manipulates the map once available.
@@ -36,12 +54,40 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
+
+        Log.d("Maps:", "GoogleMap onMapReady");
+
         mMap = googleMap;
 
-        // Add a marker in Sydney and move the camera
-        LatLng ckcc = new LatLng(11.569672, 104.888414);
-        mMap.addMarker(new MarkerOptions().position(ckcc).title("CKCC Cooperation Center"));
-        mMap.setMinZoomPreference(16.0f);
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(ckcc));
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+
+        Log.d("Maps:", "GoogleAPIClient onConnected");
+
+        Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
+                mGoogleApiClient);
+
+        if(mLastLocation !=null){
+            // Add a marker in Sydney and move the camera
+            lastLocation = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+            if(mMap !=null){
+                if(lastLocation !=null) {
+                    mMap.addMarker(new MarkerOptions().position(lastLocation).title("CKCC Cooperation Center..."));
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastLocation, 14.0f));
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+
     }
 }

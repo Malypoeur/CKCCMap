@@ -5,6 +5,12 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
@@ -14,6 +20,10 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
@@ -33,6 +43,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+
+        // for retrieving last known location
         if (mGoogleApiClient == null) {
             mGoogleApiClient = new GoogleApiClient.Builder(this)
                     .addConnectionCallbacks(this)
@@ -41,6 +53,39 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .build();
         }
         mGoogleApiClient.connect();
+
+        // for retrieving Google direction
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String url ="https://maps.googleapis.com/maps/api/directions/json?origin=11.566872,104.890467&destination=11.559841,104.910407&key=AIzaSyDZX40EuY1U9PsnHdtJb60AamHBKPeoltM";
+
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                Log.d("Volley: ", "response success");
+                Log.d("Volley: ", response.toString());
+
+                try {
+                    JSONObject jsonObject = new JSONObject(response);
+                    JSONArray geo_waypoints = jsonObject.getJSONArray("geocoded_waypoints");
+                    JSONObject obj_temp = (JSONObject) geo_waypoints.get(0);
+                    String place_id = obj_temp.getString("place_id");
+                    Log.d("JSONObject: ", place_id);
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("Volley: ", "response Error");
+            }
+        });
+
+        queue.add(stringRequest);
+
     }
 
     /**

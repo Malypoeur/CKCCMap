@@ -1,5 +1,6 @@
 package term3.fe.rupp.ckccmap;
 
+import android.graphics.Color;
 import android.location.Location;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -19,11 +20,16 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.maps.android.PolyUtil;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
@@ -54,38 +60,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         mGoogleApiClient.connect();
 
-        // for retrieving Google direction
-        RequestQueue queue = Volley.newRequestQueue(this);
-        String url ="https://maps.googleapis.com/maps/api/directions/json?origin=11.566872,104.890467&destination=11.559841,104.910407&key=AIzaSyDZX40EuY1U9PsnHdtJb60AamHBKPeoltM";
-
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                Log.d("Volley: ", "response success");
-                Log.d("Volley: ", response.toString());
-
-                try {
-                    JSONObject jsonObject = new JSONObject(response);
-                    JSONArray geo_waypoints = jsonObject.getJSONArray("geocoded_waypoints");
-                    JSONObject obj_temp = (JSONObject) geo_waypoints.get(0);
-                    String place_id = obj_temp.getString("place_id");
-                    Log.d("JSONObject: ", place_id);
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.d("Volley: ", "response Error");
-            }
-        });
-
-        queue.add(stringRequest);
-
     }
 
     /**
@@ -112,11 +86,69 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 if(lastLocation !=null) {
                     mMap.addMarker(new MarkerOptions().position(lastLocation).title("CKCC Cooperation Center..."));
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastLocation, 14.0f));
+//                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastLocation, 14.0f));
                 }
 
             }
         };
+
+
+        // for retrieving Google direction
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String url ="https://maps.googleapis.com/maps/api/directions/json?origin=11.566872,104.890467&destination=11.559841,104.910407&key=AIzaSyDZX40EuY1U9PsnHdtJb60AamHBKPeoltM";
+
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                Log.d("Volley: ", "response success");
+                Log.d("Volley: ", response.toString());
+
+                try {
+                    JSONObject jsonObject = new JSONObject(response);
+                    JSONArray geo_waypoints = jsonObject.getJSONArray("routes");
+                    JSONObject route_1 = (JSONObject) geo_waypoints.get(0);
+                    JSONObject overview_polyline = route_1.getJSONObject("overview_polyline");
+                    String points = overview_polyline.getString("points");
+                    Log.d("JSONObject: ", points);
+
+                    List<LatLng> pointList = PolyUtil.decode(points);
+                    Log.d("PolyUtil: ", pointList.toString());
+
+                    PolylineOptions polylineOptions = new PolylineOptions();
+                    polylineOptions.addAll(pointList);
+
+                    polylineOptions.color(Color.parseColor( "#FF0000"));
+                    polylineOptions.width(12.0f);
+                    mMap.addPolyline(polylineOptions);
+
+
+                    // create bounds for camera to move to direction
+                    LatLngBounds.Builder builder = LatLngBounds.builder();
+
+                    for (LatLng point: pointList
+                         ) {
+                        builder.include(point);
+                    }
+                    
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 200));
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("Volley: ", "response Error");
+            }
+        });
+
+        queue.add(stringRequest);
+
+
+
     }
 
     @Override

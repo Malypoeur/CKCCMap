@@ -19,7 +19,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
     private GoogleApiClient mGoogleApiClient = null;
-    private LatLng lastLocation = null;
+    private LocationListener locationListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,25 +59,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap = googleMap;
 
+        locationListener = new LocationListener() {
+            @Override
+            public void onLocationUpdated(LatLng lastLocation) {
+
+                Log.d("Maps:", "Receiver: onLocationUpdated");
+
+                if(lastLocation !=null) {
+                    mMap.addMarker(new MarkerOptions().position(lastLocation).title("CKCC Cooperation Center..."));
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastLocation, 14.0f));
+                }
+
+            }
+        };
     }
 
     @Override
     public void onConnected(Bundle bundle) {
-
         Log.d("Maps:", "GoogleAPIClient onConnected");
-
         Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
                 mGoogleApiClient);
 
         if(mLastLocation !=null){
             // Add a marker in Sydney and move the camera
-            lastLocation = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-            if(mMap !=null){
-                if(lastLocation !=null) {
-                    mMap.addMarker(new MarkerOptions().position(lastLocation).title("CKCC Cooperation Center..."));
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastLocation, 14.0f));
-                }
-            }
+            LatLng lastLocation = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+            // trigger onMapReady that we now have the last updatd location, so please add icon to the Map
+            Log.d("Maps:", "Sender: onLocationUpdated");
+            locationListener.onLocationUpdated(lastLocation);
         }
     }
 

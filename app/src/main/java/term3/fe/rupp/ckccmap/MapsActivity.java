@@ -2,9 +2,11 @@ package term3.fe.rupp.ckccmap;
 
 import android.graphics.Color;
 import android.location.Location;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -36,6 +38,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     private GoogleApiClient mGoogleApiClient = null;
     private LocationListener locationListener;
+    private List<LatLng> pointList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +80,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Log.d("Maps:", "GoogleMap onMapReady");
 
         mMap = googleMap;
+        MyInfoWindowAdapter myInfoWindowAdapter = new MyInfoWindowAdapter(getApplicationContext());
+        mMap.setInfoWindowAdapter(myInfoWindowAdapter);
 
         locationListener = new LocationListener() {
             @Override
@@ -86,7 +91,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 if(lastLocation !=null) {
                     mMap.addMarker(new MarkerOptions().position(lastLocation).title("CKCC Cooperation Center..."));
-//                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastLocation, 14.0f));
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastLocation, 14.0f));
                 }
 
             }
@@ -111,7 +116,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     String points = overview_polyline.getString("points");
                     Log.d("JSONObject: ", points);
 
-                    List<LatLng> pointList = PolyUtil.decode(points);
+                    pointList = PolyUtil.decode(points);
                     Log.d("PolyUtil: ", pointList.toString());
 
                     PolylineOptions polylineOptions = new PolylineOptions();
@@ -121,16 +126,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     polylineOptions.width(12.0f);
                     mMap.addPolyline(polylineOptions);
 
-
-                    // create bounds for camera to move to direction
-                    LatLngBounds.Builder builder = LatLngBounds.builder();
-
-                    for (LatLng point: pointList
-                         ) {
-                        builder.include(point);
-                    }
-                    
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 200));
 
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -147,6 +142,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         queue.add(stringRequest);
 
+
+        FloatingActionButton button = (FloatingActionButton) findViewById(R.id.fab);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                Log.d("Fab: ", "onClick");
+
+                // create bounds for camera to move to direction
+                LatLngBounds.Builder builder = LatLngBounds.builder();
+
+                for (LatLng point: pointList
+                        ) {
+                    builder.include(point);
+                }
+//                mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 200));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 200), 200, null);
+            }
+        });
 
 
     }
@@ -175,4 +189,5 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onConnectionFailed(ConnectionResult connectionResult) {
 
     }
+
 }
